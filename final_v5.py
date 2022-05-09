@@ -9,7 +9,34 @@ from mavros_msgs.srv import CommandBool, SetMode
 from std_msgs.msg import String
 from tf.transformations import quaternion_from_euler
 
+    #automatic location extraction
+waypoints = csv.reader(open('/root/Desktop/waypoints.csv', 'r'), delimiter=",")
+column1, column2 = [], []
+for row in waypoints:
+    column1.append(row[0])
+    column2.append(row[1])
+column1 = column1[1:]
+column2 = column2[1:]
+x = [float (x) for x in column1]
+y = [float (y) for y in column2]
+z = [25] #altitude in meter
+    
+#set homepoint
+xh = [0] #edit this line to home point's x coordinate
+yh = [0] #edit this line to home point's y coordinate   
 
+#create loop for waypoints
+xr = list(reversed(x))
+xr.pop(0)
+yr = list(reversed(y))
+yr.pop(0)
+xl = x + xr + xh + [xh[0]+1] 
+yl = y + yr + yh + [yh[0]+1]
+global x,y,z,l
+x = xl 
+y = yl
+z = z
+l = len(x)-1
 class OffbPosCtl:
     curr_drone_pose = PoseStamped()
     waypointIndex = 0
@@ -28,37 +55,11 @@ class OffbPosCtl:
     # matrix containing waypoints:
     # four set points: locations =[x, y, z, quat[0], quat[1], quat[2], quat[3]]
     locations = numpy.matrix([[x[0], y[0], z, orientation[0], orientation[1], orientation[2], orientation[3]],
-                              #[x[1], y[1], z, orientation[0], orientation[1], orientation[2], orientation[3]],                       
-                              #[x[2], y[2], z, orientation[0], orientation[1], orientation[2], orientation[3]]
+                              [x[1], y[1], z, orientation[0], orientation[1], orientation[2], orientation[3]],                       
+                              [x[2], y[2], z, orientation[0], orientation[1], orientation[2], orientation[3]]
                               ])
+    
     """
-    
-    #automatic location extraction
-    name = str(input("Enter the name of waypoints csv file (including its extension) :")) #input example: waypoints.csv
-    folder = str(input("Enter the folder containing waypoints file: "))#input example: /root/Downloads/
-    waypoints = csv.reader(open(folder+'/'+name, 'r'), delimiter=",")
-    column1, column2 = [], []
-    for row in waypoints:
-        column1.append(row[0])
-        column2.append(row[1])
-    column1 = column1[1:]
-    column2 = column2[1:]
-    x = [float (x) for x in column1]
-    y = [float (y) for y in column2]
-    z = [25] #altitude in meter
-    
-    #create loop for waypoints
-    xr = list(reversed(x))
-    xr.pop(0)
-    yr = list(reversed(y))
-    yr.pop(0)
-    xl = x + xr + [0]
-    yl = y + yr + [0]
-    global x
-    x = xl
-    global y 
-    y = yl
-    
     #automatic orientation
     yaw = []
     for i in range(len(x)-1):
@@ -70,13 +71,14 @@ class OffbPosCtl:
           yaw.append(math.atan((y[i+1]-y[i])/(x[i+1]-x[i]))) #3rd quadrant
        if y[i+1]<y[i] and x[i+1]<x[i]:
           yaw.append(3.14-math.atan((y[i+1]-y[i])/(x[i+1]-x[i]))) #4th quadrant
+    yaw.insert(0,0)
     yaw.append(0)
-    orientation = [quaternion_from_euler(0, 0, yaw[i]) for i in range(len(yaw))] #conversion from euler angles(roll, pitch, yaw) to quaternion
+    orientations = [quaternion_from_euler(0, 0, yaw[i]) for i in range(len(yaw))] #conversion from euler angles(roll, pitch, yaw) to quaternion
     
     #create locations matrix
     list_loc = []
     for i in range(len(x)):
-        list_loc.append([x[i], y[i], z[0], orientation[i][0], orientation[i][1], orientation[i][2], orientation[i][3]]) #edit this line to change elevation or orientation
+        list_loc.append([x[i], y[i], z[0], orientations[i][0], orientations[i][1], orientations[i][2], orientations[i][3]])
     # location matrix
     locations = numpy.matrix(list_loc)
         
@@ -112,8 +114,8 @@ class OffbPosCtl:
             success = [None for i in range(NUM_UAV)]
             for uavID in range(0, NUM_UAV):
                 try:
-                    #mode_proxy[uavID] = rospy.ServiceProxy(self.mavrosTopicStringRoot(uavID) + '/set_mode', SetMode)
-                    if self.waypointIndex is len(x):
+                    mode_proxy[uavID] = rospy.ServiceProxy(self.mavrosTopicStringRoot(uavID) + '/set_mode', SetMode)
+                    if self.waypointIndex is l:
                         success[uavID] = mode_proxy[uavID](1, 'AUTO.LAND')
                         print("landing")
                     else:
@@ -136,9 +138,9 @@ class OffbPosCtl:
                 self.waypointIndex = 0
                 self.sim_ctr += 1
 
-            #if self.waypointIndex is 5:
-            #    attach.publish("ATTACH")
-            #    print("checkpoint 1")
+            if self.waypointIndex is l:
+                attach.publish("ATTACH")
+                print("checkpoint 1")
 
             if self.isReadyToFly:
                 des = self.set_desired_pose().position
@@ -184,6 +186,8 @@ class OffbPosCtl:
     def drone_pose_cb(self, msg):
         self.curr_drone_pose = msg
         print(msg.pose)
+        print(self.waypointIndex)
+	#print(len(x))
 
     def rover_pose_cb(self, msg):
         self.curr_rover_pose = msg

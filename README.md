@@ -1,5 +1,5 @@
 # Guided Fault Mapping using Topographic Metrics
-## Maddie Schwarz, Abdel Hafiz, Mindy Zuckerman, Aswayuja Koduri
+### Maddie Schwarz, Abdel Hafiz, Mindy Zuckerman, Aswayuja Koduri
 
 ## How to run this script?
 - Open this [notebook](https://github.com/abdelhafiz10/guided-fault-mapping/blob/main/Stage%201%20DEM%20Pre-processing%20Script%20--%20Guided%20Fault%20Scarp%20Mapping.ipynb) first to extract fault scarp area 
@@ -10,7 +10,6 @@
 - Run 'python 3 /your_script_folder/final_v5.py'
 - Run 'roslaunch rtabmap_ros rtabmap.launch' in terminal
 
-## Simulation Video :
-
-- [Simulation Video](https://youtu.be/3vuvNAtDelU)
-
+## Video :
+- [Presentation](https://bit.ly/38ePD8K)
+- [Simulation Video](https://bit.ly/3ypJMbu)
